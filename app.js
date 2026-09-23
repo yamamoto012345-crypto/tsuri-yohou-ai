@@ -50,6 +50,7 @@ const TECHNIQUES = {
       tackle: '0.5〜1.5gジグヘッド＋2inワーム（ライトタックル）',
       depth: '表層〜中層（0.5〜3m）',
       action: 'リフト&フォールでフォール中のバイトを拾う。ラインスラックに注意して着底/フォール速度を一定に保つ。',
+      tags: ['calm', 'nightLight', 'structure'],
       score(c) {
         let s = 45; const r = [];
         if (['dawn', 'dusk', 'night'].includes(c.timeOfDay)) { s += 20; r.push(`${TIME_OF_DAY_LABEL[c.timeOfDay]}はアジ・メバルの活性が上がりやすい時間帯`); }
@@ -69,6 +70,7 @@ const TECHNIQUES = {
       tackle: '2〜3gフローティングプラグ／シンキングペンシル',
       depth: '表層（0〜1m）',
       action: '常夜灯の明暗の境目をゆっくりただ巻き。時々ポーズを入れてリアクションを誘う。',
+      tags: ['nightLight', 'calmHarbor'],
       score(c) {
         let s = 40; const r = [];
         if (c.timeOfDay === 'night') { s += 25; r.push('夜間は常夜灯周りの表層メバリングが本命'); }
@@ -85,6 +87,7 @@ const TECHNIQUES = {
       tackle: 'サビキ仕掛け＋アミエビカゴ',
       depth: '中層〜底（撒き餌の効く層）',
       action: '足元に仕掛けを落として棚を探り、群れが入ったら同じ棚で待つ。',
+      tags: ['pier', 'calmHarbor', 'current'],
       score(c) {
         let s = 42; const r = [];
         if (['noon', 'dawn'].includes(c.timeOfDay)) { s += 18; r.push(`${TIME_OF_DAY_LABEL[c.timeOfDay]}は回遊魚のサビキ実績が高い`); }
@@ -98,6 +101,7 @@ const TECHNIQUES = {
       tackle: '天秤＋オモリ10号＋ジャリメ/アオイソメ',
       depth: '底',
       action: 'キャスト後、底を這わせるようにゆっくりズル引きしてくる。',
+      tags: ['surf', 'sandy'],
       score(c) {
         let s = 38; const r = [];
         if (c.windSpeed > 5) { s += 12; r.push(`風速${c.windSpeed.toFixed(1)}m/sでも底を取る釣りなので影響を受けにくい`); }
@@ -111,6 +115,7 @@ const TECHNIQUES = {
       tackle: '磯竿＋円錐ウキ＋オキアミ',
       depth: '中層（潮に合わせて可変）',
       action: '潮の流れに仕掛けを乗せ、自然に流してアタリを待つ。',
+      tags: ['current', 'deepEdge'],
       score(c) {
         let s = 40; const r = [];
         if (c.tide && c.tide.fractionTenth >= 3 && c.tide.fractionTenth <= 7) { s += 20; r.push(`潮がしっかり動く時間帯（${c.tide.state}${c.tide.fractionTenth}分）で仕掛けがナチュラルに流れる`); }
@@ -127,6 +132,7 @@ const TECHNIQUES = {
       tackle: 'ポッパー or 4inノーシンカーワーム',
       depth: '表層',
       action: 'ドッグウォークやポーズを入れつつ、ストラクチャー周りを丁寧にトレース。',
+      tags: ['calm', 'shallowCove', 'vegetation'],
       score(c) {
         let s = 40; const r = [];
         if (['dawn', 'dusk'].includes(c.timeOfDay)) { s += 25; r.push(`${TIME_OF_DAY_LABEL[c.timeOfDay]}の低光量はトップウォーターの好機`); }
@@ -141,6 +147,7 @@ const TECHNIQUES = {
       tackle: 'スピナーベイト1/2oz or シャッドクランク',
       depth: '中層',
       action: 'ストラクチャーやブレイクラインに沿ってただ巻きし、広範囲をスピーディに探る。',
+      tags: ['nearBreak', 'current'],
       score(c) {
         let s = 42; const r = [];
         if (!c.isSunny) { s += 15; r.push('曇天でベイトフィッシュが浮きやすく巻物への反応が良い'); }
@@ -154,6 +161,7 @@ const TECHNIQUES = {
       tackle: '3.5inワームのネコリグ or ダウンショット',
       depth: 'ボトム',
       action: 'ボトムでシェイクしながらスローに誘い、時々放置してバイトを待つ。',
+      tags: ['structure', 'deepEdge'],
       score(c) {
         let s = 38; const r = [];
         if (c.isSunny) { s += 20; r.push('晴天無風でプレッシャーが高い時はフィネスが強い'); }
@@ -167,6 +175,7 @@ const TECHNIQUES = {
       tackle: '3/8ozラバージグ＋トレーラー',
       depth: 'ボトム〜カバー際',
       action: 'カバーの奥にピッチングし、フォール→ズル引き→シェイクでリアクションを誘う。',
+      tags: ['structure', 'shallowCove'],
       score(c) {
         let s = 36; const r = [];
         if (c.isRain) { s += 15; r.push('降雨後の濁りはラバージグのシルエットが効きやすい'); }
@@ -182,6 +191,7 @@ const TECHNIQUES = {
       tackle: '50〜60mmシンキングミノー',
       depth: '表層〜30cm',
       action: 'アップ〜クロス方向にキャストし、ただ巻き+時々ヒラ打ちさせて誘う。',
+      tags: ['current', 'nearBreak'],
       score(c) {
         let s = 42; const r = [];
         if (!c.isSunny) { s += 20; r.push('曇天は警戒心が緩みミノーへの反応が良い'); }
@@ -195,6 +205,7 @@ const TECHNIQUES = {
       tackle: '2〜3gスプーン',
       depth: 'ボトム〜中層',
       action: 'ボトムをかすめるように引き、時々リフト&フォールでリアクションを誘発。',
+      tags: ['deepEdge', 'current'],
       score(c) {
         let s = 40; const r = [];
         if (c.isSunny) { s += 15; r.push('晴天クリアウォーターではボトム寄りのレンジが安定'); }
@@ -208,6 +219,7 @@ const TECHNIQUES = {
       tackle: '#14〜#18 パラシュートフライ',
       depth: '水面',
       action: 'ナチュラルドリフトで流し、ライズに合わせてアワセを入れる。',
+      tags: ['calm', 'shallowCove'],
       score(c) {
         let s = 35; const r = [];
         if (['dawn', 'dusk'].includes(c.timeOfDay)) { s += 25; r.push('虫の活動が増えるマズメ時はライズが出やすい'); }
@@ -222,6 +234,7 @@ const TECHNIQUES = {
       tackle: '渓流竿＋ミミズ or 川虫＋玉ウキ',
       depth: 'ボトム〜中層（流れに乗せる）',
       action: '流れに自然に仕掛けを乗せ、竿先でアタリを取る。',
+      tags: ['current'],
       score(c) {
         let s = 44; const r = [];
         if (c.isRain) { s += 15; r.push('増水・濁り時はエサ釣りの安定感が強み'); }
@@ -238,6 +251,7 @@ const TECHNIQUES = {
       tackle: '20〜40gメタルジグ',
       depth: '中層〜ボトム',
       action: 'ボトムを取ってからワンピッチジャークで中層まで巻き上げ、レンジを探る。',
+      tags: ['current', 'deepEdge'],
       score(c) {
         let s = 44; const r = [];
         if (['dawn', 'dusk'].includes(c.timeOfDay)) { s += 20; r.push(`${TIME_OF_DAY_LABEL[c.timeOfDay]}はナブラ・青物の活性が上がりやすい`); }
@@ -252,6 +266,7 @@ const TECHNIQUES = {
       tackle: 'メタルジグ or ミノー高速巻き',
       depth: '表層',
       action: 'キャスト後すぐに高速でただ巻きし、表層のナブラ・ボイルを狙う。',
+      tags: ['current'],
       score(c) {
         let s = 38; const r = [];
         if (c.isSunny) { s += 15; r.push('晴天でベイトが表層に浮きやすい'); }
@@ -265,6 +280,7 @@ const TECHNIQUES = {
       tackle: '60〜100gスロージグ',
       depth: 'ボトム',
       action: 'リフト&フォールでボトム付近をじっくりステイさせ、フォール中のバイトを拾う。',
+      tags: ['deepEdge', 'calm'],
       score(c) {
         let s = 36; const r = [];
         if (c.windSpeed < 5) { s += 15; r.push('風・流れが緩い時はスローなフォールが決めやすい'); }
@@ -323,6 +339,137 @@ const TECHNIQUES = {
   ],
 };
 
+// ===================== 広域エリア → 詳細ポイント選出ロジック =====================
+// 「琵琶湖」「淡路島」のような広域名が入力された場合に、エリア内の詳細な釣りポイントを
+// 3件提示するための仕組み。実在の有名スポットをキュレーションしたデータベースを優先し、
+// 該当がない場合は座標の範囲(bounding box)から機械的に3エリアを生成するフォールバックを使う
+// （存在しない「実績ポイント」を偽って生成することは避け、その場合は目安である旨を明示する）。
+
+const TAG_LABEL = {
+  shallowCove: 'ワンド状の浅場',
+  vegetation: '水草(ウィード)の多いエリア',
+  calm: '流れが穏やかなエリア',
+  nearBreak: 'ブレイク(駆け上がり)が隣接するエリア',
+  structure: 'ストラクチャーが多いエリア',
+  current: '潮通し・流れが良いエリア',
+  pier: '足場の良い波止・堤防',
+  calmHarbor: '静穏な港内',
+  nightLight: '常夜灯のあるエリア',
+  deepEdge: '深場に近いエリア',
+  surf: '遠浅のサーフ',
+  sandy: '砂地のエリア',
+};
+
+// 実在の有名釣りスポットをキュレーションしたデータベース（座標・特性は目安）
+const CURATED_AREAS = [
+  {
+    keywords: ['琵琶湖'],
+    areaLabel: '琵琶湖',
+    spots: [
+      {
+        name: '南湖・赤野井湾ワンド周辺',
+        lat: 35.129, lon: 135.986,
+        traits: ['ワンド状の地形で水通しが穏やか', '浅場に水草(ウィード)が多くベイトが溜まりやすい'],
+        tags: ['shallowCove', 'vegetation', 'calm'],
+      },
+      {
+        name: '木浜周辺（南湖東岸）',
+        lat: 35.118, lon: 135.995,
+        traits: ['遠浅で沖にブレイク(駆け上がり)が点在', '護岸沿いの沈み物にベイトが着きやすい'],
+        tags: ['nearBreak', 'structure'],
+      },
+      {
+        name: '近江大橋周辺（南湖）',
+        lat: 35.022, lon: 135.904,
+        traits: ['橋脚周りに流れが生まれ潮通しが良い', '深場と浅場の境目が近く一年中実績が高い'],
+        tags: ['current', 'nearBreak', 'structure'],
+      },
+    ],
+  },
+  {
+    keywords: ['淡路島'],
+    areaLabel: '淡路島',
+    spots: [
+      {
+        name: '江井漁港周辺',
+        lat: 34.548, lon: 134.889,
+        traits: ['港内は足場が良く常夜灯もあり夜釣り向き', '静穏な港内でファミリーフィッシングにも好適'],
+        tags: ['pier', 'calmHarbor', 'nightLight'],
+      },
+      {
+        name: '生穂新島沖の波止周辺',
+        lat: 34.345, lon: 134.865,
+        traits: ['沖の波止で潮通しが良く回遊魚が狙える', '足元から水深があり大型回遊魚も期待できる'],
+        tags: ['current', 'deepEdge', 'pier'],
+      },
+      {
+        name: '慶野松原海岸周辺',
+        lat: 34.285, lon: 134.748,
+        traits: ['遠浅のサーフで投げ釣り向き', '砂地でキス・カレイの実績が高い'],
+        tags: ['surf', 'sandy'],
+      },
+    ],
+  },
+];
+
+function matchCuratedArea(text) {
+  if (!text) return null;
+  return CURATED_AREAS.find((a) => a.keywords.some((k) => text.includes(k))) || null;
+}
+
+function bboxSizeKm(bbox) {
+  if (!bbox || bbox.length < 4) return 0;
+  const [s, n, w, e] = bbox;
+  const latKm = Math.abs(n - s) * 111;
+  const lonKm = Math.abs(e - w) * 111 * Math.cos(((s + n) / 2) * Math.PI / 180);
+  return Math.max(latKm, lonKm);
+}
+
+// キュレーション対象外の広域エリア用フォールバック: 実績データではなく、
+// 範囲(bounding box)から機械的に生成した「岸寄り/沖合い/中間」の目安ポイント3件
+function generateGenericSpots(geo, bbox) {
+  const [s, n, w, e] = bbox && bbox.length >= 4 ? bbox : [geo.lat - 0.01, geo.lat + 0.01, geo.lon - 0.01, geo.lon + 0.01];
+  const latHalf = Math.max(Math.abs(n - s) / 2, 0.003);
+  const lonHalf = Math.max(Math.abs(e - w) / 2, 0.003);
+  const defs = [
+    { dLat: latHalf * 0.5, dLon: 0, label: '北側エリア', tags: ['structure', 'shallowCove'], trait: '岸寄り・浅場を想定したエリア' },
+    { dLat: -latHalf * 0.35, dLon: lonHalf * 0.45, label: '南東側エリア', tags: ['deepEdge', 'current'], trait: '沖合い・深場を想定したエリア' },
+    { dLat: -latHalf * 0.15, dLon: -lonHalf * 0.5, label: '西側エリア', tags: [], trait: 'バランス型の中間エリア' },
+  ];
+  return defs.map((d) => ({
+    name: `${geo.shortLabel}${d.label}`,
+    lat: geo.lat + d.dLat,
+    lon: geo.lon + d.dLon,
+    traits: [d.trait, '※実績データに基づく特定ポイントではなく、エリア内の目安位置です'],
+    tags: d.tags,
+  }));
+}
+
+// 技術のtagsとスポットのtagsが重なる場合にボーナス加点し、選出理由を1文追加する
+function spotAffinityAdjust(technique, spot) {
+  if (!spot || !technique.tags || !technique.tags.length || !spot.tags) return { bonus: 0, reason: null };
+  const matched = technique.tags.filter((t) => spot.tags.includes(t));
+  if (!matched.length) return { bonus: 0, reason: null };
+  const bonus = Math.min(matched.length, 2) * 15;
+  const reason = `${spot.name}は${matched.map((t) => TAG_LABEL[t] || t).join('・')}という特性があり相性が良い`;
+  return { bonus, reason };
+}
+
+// 指定スポットに対して、条件スコア＋スポット特性ボーナスが最も高い釣り方を1つ選ぶ
+function pickBestTechniqueForSpot(fishType, cond, spot) {
+  const list = TECHNIQUES[fishType] || TECHNIQUES.other;
+  let best = null;
+  for (const tech of list) {
+    const { score, reasons } = tech.score(cond);
+    const affinity = spotAffinityAdjust(tech, spot);
+    const total = score + affinity.bonus;
+    if (!best || total > best.score) {
+      best = { ...tech, score: total, reasons: affinity.reason ? [...reasons, affinity.reason] : reasons };
+    }
+  }
+  return best;
+}
+
 // ===================== 日時・気象・潮汐ロジック =====================
 
 function pad2(n) { return n.toString().padStart(2, '0'); }
@@ -375,7 +522,8 @@ async function geocode(name) {
     .filter(Boolean)
     .filter((v, i, arr) => arr.indexOf(v) === i)
     .join(', ');
-  return { lat: parseFloat(best.lat), lon: parseFloat(best.lon), label };
+  const bbox = Array.isArray(best.boundingbox) ? best.boundingbox.map(Number) : null;
+  return { lat: parseFloat(best.lat), lon: parseFloat(best.lon), label, shortLabel: best.name || name, bbox };
 }
 
 async function fetchWeather(lat, lon, targetDate) {
@@ -516,8 +664,8 @@ function selectTopTechniques(fishType, cond) {
 // ===================== UI 制御 =====================
 
 const el = (id) => document.getElementById(id);
-let map = null, marker = null;
-let gmap = null, gmarker = null;
+let map = null, markers = [];
+let gmap = null, gMarkers = [];
 let mapEngine = null; // 'leaflet' | 'google'
 let gmapsLoadPromise = null;
 
@@ -569,14 +717,32 @@ async function onSubmit(e) {
     const needsTide = params.fishType === 'sea' || params.fishType === 'jigging';
     const tide = needsTide ? computeTide(targetDate.date, geo.lat, geo.lon) : null;
     const cond = buildConditions(params.fishType, weather, tide, targetDate);
-    const picks = selectTopTechniques(params.fishType, cond);
 
-    renderMap(geo);
-    renderConditionStrip(cond, weather, targetDate.date);
-    renderTideNote(cond.tide);
-    renderTechniqueCards(picks);
+    // 入力が「琵琶湖」「淡路島」等の広域名かどうかを判定し、広域なら詳細ポイント3件を選出する
+    const curated = matchCuratedArea(location) || matchCuratedArea(geo.label);
+    const isBroadArea = !!curated || bboxSizeKm(geo.bbox) > 1.5;
+
+    let resultItems, mapSpots;
+    if (isBroadArea) {
+      const areaLabel = curated ? curated.areaLabel : geo.label;
+      const rawSpots = curated ? curated.spots : generateGenericSpots(geo, geo.bbox);
+      mapSpots = rawSpots.map((spot) => ({ ...spot, areaLabel, isSubSpot: true }));
+      resultItems = mapSpots.map((spot) => ({
+        spot,
+        technique: pickBestTechniqueForSpot(params.fishType, cond, spot),
+      }));
+    } else {
+      const techniques = selectTopTechniques(params.fishType, cond);
+      const singleSpot = { name: geo.label, areaLabel: geo.label, lat: geo.lat, lon: geo.lon, traits: [], isSubSpot: false };
+      mapSpots = [singleSpot];
+      resultItems = techniques.map((technique) => ({ spot: singleSpot, technique }));
+    }
 
     el('results').classList.remove('hidden');
+    renderMap(mapSpots);
+    renderConditionStrip(cond, weather, targetDate.date);
+    renderTideNote(cond.tide);
+    renderResultCards(resultItems);
   } catch (err) {
     showError(err.message || '診断中にエラーが発生しました。');
   } finally {
@@ -584,44 +750,62 @@ async function onSubmit(e) {
   }
 }
 
-function renderMap(geo) {
+function renderMap(spots) {
   const key = localStorage.getItem('gmapsKey');
   const wantEngine = key ? 'google' : 'leaflet';
   const container = el('map');
 
   if (mapEngine && mapEngine !== wantEngine) {
     container.innerHTML = '';
-    map = null; gmap = null; marker = null; gmarker = null;
+    map = null; gmap = null; markers = []; gMarkers = [];
   }
   mapEngine = wantEngine;
 
   if (wantEngine === 'google') {
     loadGoogleMaps(key).then(() => {
-      if (!gmap) gmap = new google.maps.Map(container, { center: { lat: geo.lat, lng: geo.lon }, zoom: 13 });
-      else gmap.setCenter({ lat: geo.lat, lng: geo.lon });
-      if (gmarker) gmarker.setMap(null);
-      gmarker = new google.maps.Marker({ position: { lat: geo.lat, lng: geo.lon }, map: gmap, title: geo.label });
+      if (!gmap) gmap = new google.maps.Map(container, { center: { lat: spots[0].lat, lng: spots[0].lon }, zoom: 13 });
+      gMarkers.forEach((m) => m.setMap(null));
+      gMarkers = spots.map((s, i) => new google.maps.Marker({
+        position: { lat: s.lat, lng: s.lon },
+        map: gmap,
+        label: spots.length > 1 ? String(i + 1) : undefined,
+        title: s.name,
+      }));
+      if (spots.length > 1) {
+        const bounds = new google.maps.LatLngBounds();
+        spots.forEach((s) => bounds.extend({ lat: s.lat, lng: s.lon }));
+        gmap.fitBounds(bounds, 40);
+      } else {
+        gmap.setCenter({ lat: spots[0].lat, lng: spots[0].lon });
+        gmap.setZoom(13);
+      }
     }).catch(() => {
       mapEngine = 'leaflet';
       container.innerHTML = '';
-      renderLeafletMap(geo, container);
+      renderLeafletMap(spots, container);
     });
   } else {
-    renderLeafletMap(geo, container);
+    renderLeafletMap(spots, container);
   }
 }
 
-function renderLeafletMap(geo, container) {
+function renderLeafletMap(spots, container) {
   if (!map) {
-    map = L.map(container, { scrollWheelZoom: false }).setView([geo.lat, geo.lon], 13);
+    map = L.map(container, { scrollWheelZoom: false });
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors', maxZoom: 19,
     }).addTo(map);
-  } else {
-    map.setView([geo.lat, geo.lon], 13);
   }
-  if (marker) marker.remove();
-  marker = L.marker([geo.lat, geo.lon]).addTo(map).bindPopup(geo.label).openPopup();
+  map.invalidateSize();
+  markers.forEach((m) => m.remove());
+  const marks = ['①', '②', '③'];
+  markers = spots.map((s, i) => L.marker([s.lat, s.lon]).addTo(map).bindPopup(`${spots.length > 1 ? marks[i] + ' ' : ''}${s.name}`));
+  if (spots.length > 1) {
+    map.fitBounds(L.latLngBounds(spots.map((s) => [s.lat, s.lon])), { padding: [30, 30] });
+  } else {
+    map.setView([spots[0].lat, spots[0].lon], 13);
+  }
+  if (markers[0]) markers[0].openPopup();
   setTimeout(() => map && map.invalidateSize(), 200);
 }
 
@@ -666,26 +850,37 @@ function renderTideNote(tide) {
   box.classList.remove('hidden');
 }
 
-function renderTechniqueCards(picks) {
+function renderResultCards(items) {
   const medals = ['🥇', '🥈', '🥉'];
-  el('techniqueCards').innerHTML = picks.map((p, i) => `
+  el('techniqueCards').innerHTML = items.map((item, i) => {
+    const { spot, technique } = item;
+    const headerLine = spot.isSubSpot
+      ? `<div class="text-xs font-semibold text-cyan-700 mb-1">🗺️ ${spot.areaLabel} ／ 【${spot.name}】</div>`
+      : `<div class="text-xs font-semibold text-cyan-700 mb-1">📍 ${spot.name}</div>`;
+    const traitsHtml = spot.traits && spot.traits.length
+      ? `<div class="mt-1 text-xs text-slate-500">特性: ${spot.traits.join(' / ')}</div>`
+      : '';
+    return `
     <div class="card-pop bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
       <div class="flex items-start gap-3">
         <div class="text-2xl">${medals[i] || '🎯'}</div>
         <div class="flex-1">
-          <h3 class="font-bold text-slate-800">${p.name}</h3>
+          ${headerLine}
+          <h3 class="font-bold text-slate-800">${technique.name}</h3>
+          ${traitsHtml}
           <dl class="mt-2 text-sm text-slate-600 space-y-1">
-            <div><dt class="inline font-semibold text-slate-500">仕掛け/ルアー/エサ：</dt><dd class="inline">${p.tackle}</dd></div>
-            <div><dt class="inline font-semibold text-slate-500">狙うタナ：</dt><dd class="inline">${p.depth}</dd></div>
-            <div><dt class="inline font-semibold text-slate-500">アクション：</dt><dd class="inline">${p.action}</dd></div>
+            <div><dt class="inline font-semibold text-slate-500">仕掛け/ルアー/エサ：</dt><dd class="inline">${technique.tackle}</dd></div>
+            <div><dt class="inline font-semibold text-slate-500">狙うタナ：</dt><dd class="inline">${technique.depth}</dd></div>
+            <div><dt class="inline font-semibold text-slate-500">アクション：</dt><dd class="inline">${technique.action}</dd></div>
           </dl>
           <div class="mt-2 bg-teal-50 border border-teal-100 rounded-lg p-2 text-xs text-teal-800">
-            <b>選出理由：</b>${p.reasons.length ? p.reasons.join('。') + '。' : '総合的に条件に適した選択です。'}
+            <b>選出理由：</b>${technique.reasons.length ? technique.reasons.join('。') + '。' : '総合的に条件に適した選択です。'}
           </div>
         </div>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function registerServiceWorker() {
