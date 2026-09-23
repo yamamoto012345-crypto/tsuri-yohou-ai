@@ -760,6 +760,64 @@ function lureColorAdvice(cond) {
   return '晴天・クリアウォーターを想定し、ナチュラル系(クリア/パール/ワカサギ系)など警戒されにくいカラーが有利。';
 }
 
+// 「釣果数の予測」はできない（実際の釣果ログや個体数データが存在しないため）。
+// 代わりに、風・天候・水温・潮汐・時間帯という実測/準実測データだけから、
+// 「その日の釣り条件そのものの良さ」を技術選択とは無関係に算出する。
+// (個々の釣り方スコアを使うと「4択の中で一番マッチする手法」を反映してしまい、
+//  悪条件でも常に高評価になってしまうため、あえて技術選択から切り離している。)
+function overallConditionScore(cond) {
+  let s = 50;
+  if (cond.windSpeed >= 1 && cond.windSpeed <= 6) s += 15;
+  else if (cond.windSpeed > 12) s -= 15;
+  if (cond.isRain) s -= 15;
+  else s += 10;
+  if (cond.isLowActivitySeason) s -= 10;
+  if (cond.tide) {
+    if (cond.tide.fractionTenth >= 2 && cond.tide.fractionTenth <= 8) s += 10;
+    else s -= 10;
+  }
+  if (['dawn', 'dusk'].includes(cond.timeOfDay)) s += 5;
+  else if (cond.timeOfDay === 'noon') s -= 5;
+  return Math.max(0, Math.min(100, s));
+}
+
+function scoreToExpectationTier(score) {
+  if (score >= 70) return { icon: '◎', label: '絶好調', desc: '条件が非常に良く、活性の高い展開が期待できる' };
+  if (score >= 50) return { icon: '○', label: '良好', desc: '条件が良く、狙い方次第で反応が得やすい' };
+  if (score >= 30) return { icon: '△', label: '普通', desc: '標準的な条件。丁寧な誘いが必要になりやすい' };
+  return { icon: '▲', label: '厳しめ', desc: '活性が下がりやすい条件。粘り強いアプローチが鍵' };
+}
+
+// 実測の水温トレンド(cond.isLowActivitySeason)に基づく、その時期に狙われやすい魚種の一般的な傾向。
+// 個体の存否や釣果を保証するものではなく、季節性の一般論として表示する。
+const TARGET_SPECIES_HINT = {
+  sea: {
+    active: 'アジ・メバル・クロダイ・回遊魚(サビキで狙える小型回遊魚)など',
+    low: 'メバル・カサゴなどの根魚中心（回遊魚は活性が下がりやすい時期）',
+  },
+  bass: {
+    active: 'ブラックバス（表層〜中層でも反応しやすい活性期）',
+    low: 'ブラックバス（低水温期はボトム中心で低活性想定）',
+  },
+  trout: {
+    active: 'ニジマス・ヤマメ・イワナ（虫の活動も活発な時期）',
+    low: 'ニジマス中心（渓流種は低水温期に活性が下がりやすい）',
+  },
+  jigging: {
+    active: '青物（ブリ・サワラ・カツオ等の回遊魚）',
+    low: '根魚・青物（低水温期は青物の回遊が鈍りやすい）',
+  },
+  other: {
+    active: '季節の回遊魚・根魚など',
+    low: '根魚中心（低水温期は回遊魚の活性が下がりやすい）',
+  },
+};
+
+function targetSpeciesHint(fishType, cond) {
+  const hint = TARGET_SPECIES_HINT[fishType] || TARGET_SPECIES_HINT.other;
+  return cond.isLowActivitySeason ? hint.low : hint.active;
+}
+
 function selectTopTechniques(fishType, cond) {
   const list = TECHNIQUES[fishType] || TECHNIQUES.other;
   const scored = list.map((tech) => {
@@ -866,8 +924,13 @@ async function onSubmit(e) {
     el('results').classList.remove('hidden');
     renderMap(mapSpots);
     renderConditionStrip(cond, weather, targetDate.date);
+    renderExpectationNote(cond);
     renderTideNote(cond.tide);
-    renderResultCards(resultItems, { castAdvice: castDirectionAdvice(cond), colorAdvice: lureColorAdvice(cond) });
+    renderResultCards(resultItems, {
+      castAdvice: castDirectionAdvice(cond),
+      colorAdvice: lureColorAdvice(cond),
+      speciesHint: targetSpeciesHint(params.fishType, cond),
+    });
   } catch (err) {
     showError(err.message || '診断中にエラーが発生しました。');
   } finally {
@@ -978,6 +1041,14 @@ function renderTideNote(tide) {
   box.classList.remove('hidden');
 }
 
+function renderExpectationNote(cond) {
+  const box = el('expectationNote');
+  const score = overallConditionScore(cond);
+  const tier = scoreToExpectationTier(score);
+  box.innerHTML = `🎯 <b>本日の期待度：${tier.icon} ${tier.label}</b>（${tier.desc}）<br>※釣果数の予測ではなく、風・天候・水温・潮汐等から算出した条件の良さの目安です（条件スコア${score}/100）。`;
+  box.classList.remove('hidden');
+}
+
 function renderResultCards(items, advice) {
   const medals = ['🥇', '🥈', '🥉'];
   el('techniqueCards').innerHTML = items.map((item, i) => {
@@ -996,6 +1067,7 @@ function renderResultCards(items, advice) {
           ${headerLine}
           <h3 class="font-bold text-slate-800">${technique.name}</h3>
           ${traitsHtml}
+          <div class="mt-1 text-xs text-slate-500">参考: ${advice.speciesHint}</div>
           <dl class="mt-2 text-sm text-slate-600 space-y-1">
             <div><dt class="inline font-semibold text-slate-500">仕掛け/ルアー/エサ：</dt><dd class="inline">${technique.tackle}</dd></div>
             <div><dt class="inline font-semibold text-slate-500">狙うタナ：</dt><dd class="inline">${technique.depth}</dd></div>
