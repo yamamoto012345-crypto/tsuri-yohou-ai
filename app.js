@@ -818,6 +818,58 @@ function targetSpeciesHint(fishType, cond) {
   return cond.isLowActivitySeason ? hint.low : hint.active;
 }
 
+// 備考欄（自由記述の要望）に対するAI回答。Anthropic APIキーが設定されている場合のみ動作する。
+// ルールベースの3枚のカード（既存の診断ロジック）とは完全に独立した補助機能であり、
+// AI呼び出しが失敗してもメインの診断結果には一切影響しない。
+async function fetchAiSuggestion(remarks, ctx) {
+  const apiKey = localStorage.getItem('anthropicKey');
+  if (!apiKey) return { unavailable: true };
+
+  const contextText = [
+    `釣種: ${ctx.fishTypeLabel}`,
+    `場所: ${ctx.placeLabel}`,
+    `日時: ${ctx.dateLabel}（時間帯: ${ctx.timeOfDayLabel}）`,
+    `天候: ${ctx.cond.weatherLabel}、気温${ctx.cond.temp.toFixed(1)}℃、風${ctx.cond.windDirLabel}${ctx.cond.windSpeed.toFixed(1)}m/s`,
+    ctx.cond.waterTemp != null ? `実測海面水温: ${ctx.cond.waterTemp.toFixed(1)}℃` : null,
+    ctx.cond.tide ? `潮汐(簡易推定): ${ctx.cond.tide.type} ${ctx.cond.tide.state}${ctx.cond.tide.fractionTenth}分` : null,
+  ].filter(Boolean).join('\n');
+
+  const systemPrompt = 'あなたは日本の釣りに詳しいアシスタントです。ユーザーの備考・要望と、実測の気象/潮汐条件を踏まえて、要望に最も合う釣り方を1つ提案してください。出力は必ず次のJSON形式のみで、前後に他の文章やマークダウンのコードブロックを含めないでください。\n{"targetSpecies":"対象魚種","technique":"釣り方の名称","tackle":"仕掛け/ルアー/エサ","depth":"狙うタナ","action":"アクション/釣り方の説明","reason":"この条件でこの提案を選んだ理由"}\n釣果数や匹数を保証する表現は使わないでください。';
+
+  const userPrompt = `【現在の条件】\n${contextText}\n\n【ユーザーの備考・要望】\n${remarks}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = await res.json().catch(() => null);
+    throw new Error(errBody?.error?.message || `AI呼び出しに失敗しました（HTTP ${res.status}）`);
+  }
+  const data = await res.json();
+  const text = data.content?.[0]?.text || '';
+  const cleaned = text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch {
+    throw new Error('AIの回答を解析できませんでした。');
+  }
+  return { unavailable: false, ...parsed };
+}
+
 function selectTopTechniques(fishType, cond) {
   const list = TECHNIQUES[fishType] || TECHNIQUES.other;
   const scored = list.map((tech) => {
@@ -841,6 +893,12 @@ function initSettings() {
   el('gmapsKey').value = key;
   el('gmapsKey').addEventListener('input', (e) => {
     localStorage.setItem('gmapsKey', e.target.value.trim());
+  });
+
+  const aKey = localStorage.getItem('anthropicKey') || '';
+  el('anthropicKey').value = aKey;
+  el('anthropicKey').addEventListener('input', (e) => {
+    localStorage.setItem('anthropicKey', e.target.value.trim());
   });
 }
 
@@ -871,6 +929,7 @@ async function onSubmit(e) {
     dateOption: el('dateOption').value,
     timeOfDay: el('timeOfDay').value,
     customDate: el('customDate').value,
+    remarks: el('remarks').value.trim(),
   };
   if (params.dateOption === 'custom' && !params.customDate) {
     showError('日付を指定してください。'); return;
@@ -931,6 +990,26 @@ async function onSubmit(e) {
       colorAdvice: lureColorAdvice(cond),
       speciesHint: targetSpeciesHint(params.fishType, cond),
     });
+
+    // 備考欄への回答はメインの診断ロジックとは独立した補助機能。
+    // 失敗してもメインの診断結果（上記3枚のカード）には影響させない。
+    if (params.remarks) {
+      const fishTypeLabels = { sea: '海釣り', bass: 'ブラックバス', trout: '渓流・トラウト', jigging: 'ショアジギング', other: 'その他' };
+      try {
+        const aiResult = await fetchAiSuggestion(params.remarks, {
+          fishTypeLabel: fishTypeLabels[params.fishType] || params.fishType,
+          placeLabel: mapSpots[0].name,
+          dateLabel: toDateStr(targetDate.date),
+          timeOfDayLabel: TIME_OF_DAY_LABEL[targetDate.timeOfDay] || targetDate.timeOfDay,
+          cond,
+        });
+        renderAiSuggestion(params.remarks, aiResult);
+      } catch (aiErr) {
+        renderAiSuggestion(params.remarks, { error: aiErr.message });
+      }
+    } else {
+      el('aiSuggestion').classList.add('hidden');
+    }
   } catch (err) {
     showError(err.message || '診断中にエラーが発生しました。');
   } finally {
@@ -987,7 +1066,7 @@ function renderLeafletMap(spots, container) {
   map.invalidateSize();
   markers.forEach((m) => m.remove());
   const marks = ['①', '②', '③'];
-  markers = spots.map((s, i) => L.marker([s.lat, s.lon]).addTo(map).bindPopup(`${spots.length > 1 ? marks[i] + ' ' : ''}${s.name}`));
+  markers = spots.map((s, i) => L.marker([s.lat, s.lon]).addTo(map).bindPopup(`${spots.length > 1 ? marks[i] + ' ' : ''}${escapeHtml(s.name)}`));
   if (spots.length > 1) {
     map.fitBounds(L.latLngBounds(spots.map((s) => [s.lat, s.lon])), { padding: [30, 30] });
   } else {
@@ -1054,10 +1133,10 @@ function renderResultCards(items, advice) {
   el('techniqueCards').innerHTML = items.map((item, i) => {
     const { spot, technique } = item;
     const headerLine = spot.isSubSpot
-      ? `<div class="text-xs font-semibold text-cyan-700 mb-1">🗺️ ${spot.areaLabel} ／ 【${spot.name}】</div>`
-      : `<div class="text-xs font-semibold text-cyan-700 mb-1">📍 ${spot.name}</div>`;
+      ? `<div class="text-xs font-semibold text-cyan-700 mb-1">🗺️ ${escapeHtml(spot.areaLabel)} ／ 【${escapeHtml(spot.name)}】</div>`
+      : `<div class="text-xs font-semibold text-cyan-700 mb-1">📍 ${escapeHtml(spot.name)}</div>`;
     const traitsHtml = spot.traits && spot.traits.length
-      ? `<div class="mt-1 text-xs text-slate-500">特性: ${spot.traits.join(' / ')}</div>`
+      ? `<div class="mt-1 text-xs text-slate-500">特性: ${spot.traits.map(escapeHtml).join(' / ')}</div>`
       : '';
     return `
     <div class="card-pop bg-white rounded-2xl border border-slate-200 shadow-sm p-4">
@@ -1086,6 +1165,45 @@ function renderResultCards(items, advice) {
     </div>
   `;
   }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function renderAiSuggestion(remarks, result) {
+  const box = el('aiSuggestion');
+  box.classList.remove('hidden');
+
+  if (result.unavailable) {
+    box.innerHTML = `
+      <div class="bg-slate-50 border border-slate-200 text-slate-500 text-xs rounded-xl p-3">
+        💬 備考「${escapeHtml(remarks)}」への回答にはAnthropic APIキーの設定が必要です（詳細設定）。
+      </div>`;
+    return;
+  }
+  if (result.error) {
+    box.innerHTML = `
+      <div class="bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl p-3">
+        💬 備考への回答中にエラーが発生しました: ${escapeHtml(result.error)}
+      </div>`;
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="card-pop bg-violet-50 border-2 border-violet-200 rounded-2xl shadow-sm p-4">
+      <div class="text-xs font-semibold text-violet-700 mb-1">💬 備考「${escapeHtml(remarks)}」へのAI回答</div>
+      <h3 class="font-bold text-slate-800">${escapeHtml(result.targetSpecies || '')} ${escapeHtml(result.technique || '')}</h3>
+      <dl class="mt-2 text-sm text-slate-600 space-y-1">
+        <div><dt class="inline font-semibold text-slate-500">仕掛け/ルアー/エサ：</dt><dd class="inline">${escapeHtml(result.tackle || '-')}</dd></div>
+        <div><dt class="inline font-semibold text-slate-500">狙うタナ：</dt><dd class="inline">${escapeHtml(result.depth || '-')}</dd></div>
+        <div><dt class="inline font-semibold text-slate-500">アクション：</dt><dd class="inline">${escapeHtml(result.action || '-')}</dd></div>
+      </dl>
+      <div class="mt-2 bg-violet-100 border border-violet-200 rounded-lg p-2 text-xs text-violet-800">
+        <b>提案理由：</b>${escapeHtml(result.reason || '')}
+      </div>
+      <p class="mt-2 text-[11px] text-slate-400">※これはAI(Claude)が備考内容と現在の条件から生成した提案であり、上記のルールベース診断とは別の補助情報です。釣果を保証するものではありません。</p>
+    </div>`;
 }
 
 function registerServiceWorker() {
