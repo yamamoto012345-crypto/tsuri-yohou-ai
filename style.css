@@ -1,0 +1,31 @@
+body {
+  background: linear-gradient(180deg, #f0fdfa 0%, #ecfeff 40%, #f8fafc 100%);
+}
+
+.card-pop {
+  animation: pop 0.35s ease-out both;
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rank-badge {
+  background: linear-gradient(135deg, #0f766e, #0891b2);
+}
+
+#map {
+  z-index: 0;
+}
+
+select,
+input {
+  color-scheme: light;
+}

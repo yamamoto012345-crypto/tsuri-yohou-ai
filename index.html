@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>釣り予報AI - ベストな釣り方診断</title>
+<meta name="description" content="日時・場所・釣種を入力すると、気象データと潮汐推定からベストな釣り方3選とポイントを提案するPWA" />
+<meta name="theme-color" content="#0f766e" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="icons/icon.svg" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="min-h-screen text-slate-800">
+  <div class="max-w-2xl mx-auto px-4 pb-16 pt-6">
+    <header class="flex items-center gap-3 mb-6">
+      <div class="w-11 h-11 rounded-2xl rank-badge flex items-center justify-center text-2xl shadow-md">🎣</div>
+      <div>
+        <h1 class="text-xl font-bold text-teal-900">釣り予報AI</h1>
+        <p class="text-xs text-slate-500">気象・潮汐データからベストな釣り方を診断</p>
+      </div>
+    </header>
+
+    <form id="fishForm" class="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">釣種</label>
+        <select id="fishType" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+          <option value="sea">海釣り（アジング・メバリング・サビキ等）</option>
+          <option value="bass">ブラックバス</option>
+          <option value="trout">渓流・トラウト</option>
+          <option value="jigging">ショアジギング</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">日時</label>
+          <select id="dateOption" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="now">現在</option>
+            <option value="today" selected>本日</option>
+            <option value="tomorrow">明日</option>
+            <option value="custom">日付指定</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1">時間帯</label>
+          <select id="timeOfDay" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <option value="dawn">朝マズメ</option>
+            <option value="noon" selected>昼</option>
+            <option value="dusk">夕マズメ</option>
+            <option value="night">夜</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="customDateWrap" class="hidden">
+        <label class="block text-sm font-semibold text-slate-700 mb-1">日付を指定</label>
+        <input id="customDate" type="date" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-slate-700 mb-1">釣り場所</label>
+        <input id="location" type="text" placeholder="港名・湖名・河川名・住所など（例: 三崎港、河口湖、多摩川）"
+          class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+      </div>
+
+      <details class="text-xs text-slate-500">
+        <summary class="cursor-pointer select-none text-teal-700 font-medium">詳細設定（Google Maps APIキー）</summary>
+        <div class="mt-2 space-y-1">
+          <input id="gmapsKey" type="text" placeholder="お持ちのGoogle Maps APIキー（任意）"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          <p>未入力の場合は無料のOpenStreetMapで地図を表示します。キーはこの端末にのみ保存されます。</p>
+        </div>
+      </details>
+
+      <button type="submit" id="submitBtn"
+        class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3 rounded-xl transition shadow-sm">
+        ベストな釣り方を診断する
+      </button>
+    </form>
+
+    <div id="loading" class="hidden mt-6 flex flex-col items-center gap-2 text-teal-700">
+      <div class="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
+      <p class="text-sm">気象データ・潮汐を解析中...</p>
+    </div>
+
+    <div id="errorBox" class="hidden mt-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl p-3"></div>
+
+    <section id="results" class="hidden mt-6 space-y-5">
+      <div class="rounded-2xl overflow-hidden shadow-sm border border-slate-200">
+        <div id="map" class="w-full h-64"></div>
+      </div>
+
+      <div id="conditionStrip" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center"></div>
+
+      <div id="tideNote" class="hidden bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs rounded-xl p-3"></div>
+
+      <div>
+        <h2 class="text-base font-bold text-slate-800 mb-2">🏆 ベストな釣り方 3選</h2>
+        <div id="techniqueCards" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <footer class="mt-10 text-[11px] text-slate-400 leading-relaxed">
+      <p>気象データ: Open-Meteo（forecast / archive API）。潮汐は月齢に基づく簡易推定であり、実際の潮汐表とは異なる場合があります。地図はOpenStreetMap（Google Maps APIキー設定時はGoogle Mapsに切替）。診断結果は参考情報であり、安全な釣行を優先してください。</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

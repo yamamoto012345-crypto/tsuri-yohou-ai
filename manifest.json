@@ -1,0 +1,26 @@
+{
+  "name": "釣り予報AI - ベストな釣り方診断",
+  "short_name": "釣り予報AI",
+  "description": "日時・場所・釣種から気象データと潮汐推定でベストな釣り方3選を提案するPWA",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f0fdfa",
+  "theme_color": "#0f766e",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
