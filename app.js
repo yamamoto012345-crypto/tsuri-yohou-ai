@@ -50,6 +50,7 @@ const TECHNIQUES = {
       tackle: '0.5〜1.5gジグヘッド＋2inワーム（ライトタックル）',
       depth: '表層〜中層（0.5〜3m）',
       action: 'リフト&フォールでフォール中のバイトを拾う。ラインスラックに注意して着底/フォール速度を一定に保つ。',
+      castDistance: '足元〜15m程度（近距離のリフト&フォール中心）',
       tags: ['calm', 'nightLight', 'structure'],
       score(c) {
         let s = 45; const r = [];
@@ -70,6 +71,7 @@ const TECHNIQUES = {
       tackle: '2〜3gフローティングプラグ／シンキングペンシル',
       depth: '表層（0〜1m）',
       action: '常夜灯の明暗の境目をゆっくりただ巻き。時々ポーズを入れてリアクションを誘う。',
+      castDistance: '5〜15m（常夜灯の明暗の境目まで届く範囲）',
       tags: ['nightLight', 'calmHarbor'],
       score(c) {
         let s = 40; const r = [];
@@ -87,6 +89,7 @@ const TECHNIQUES = {
       tackle: 'サビキ仕掛け＋アミエビカゴ',
       depth: '中層〜底（撒き餌の効く層）',
       action: '足元に仕掛けを落として棚を探り、群れが入ったら同じ棚で待つ。',
+      castDistance: '足元直下（遠投せず真下に投入）',
       tags: ['pier', 'calmHarbor', 'current'],
       score(c) {
         let s = 42; const r = [];
@@ -101,6 +104,7 @@ const TECHNIQUES = {
       tackle: '天秤＋オモリ10号＋ジャリメ/アオイソメ',
       depth: '底',
       action: 'キャスト後、底を這わせるようにゆっくりズル引きしてくる。',
+      castDistance: '20〜30m（遠投して広く探る）',
       tags: ['surf', 'sandy'],
       score(c) {
         let s = 38; const r = [];
@@ -115,6 +119,7 @@ const TECHNIQUES = {
       tackle: '磯竿＋円錐ウキ＋オキアミ',
       depth: '中層（潮に合わせて可変）',
       action: '潮の流れに仕掛けを乗せ、自然に流してアタリを待つ。',
+      castDistance: '10〜20m（潮に乗せて流れる分を含む）',
       tags: ['current', 'deepEdge'],
       score(c) {
         let s = 40; const r = [];
@@ -132,6 +137,7 @@ const TECHNIQUES = {
       tackle: 'ポッパー or 4inノーシンカーワーム',
       depth: '表層',
       action: 'ドッグウォークやポーズを入れつつ、ストラクチャー周りを丁寧にトレース。',
+      castDistance: '10〜20m（ストラクチャー際を丁寧に）',
       tags: ['calm', 'shallowCove', 'vegetation'],
       score(c) {
         let s = 40; const r = [];
@@ -147,6 +153,7 @@ const TECHNIQUES = {
       tackle: 'スピナーベイト1/2oz or シャッドクランク',
       depth: '中層',
       action: 'ストラクチャーやブレイクラインに沿ってただ巻きし、広範囲をスピーディに探る。',
+      castDistance: '20〜30m（広範囲をスピーディに探る）',
       tags: ['nearBreak', 'current'],
       score(c) {
         let s = 42; const r = [];
@@ -161,6 +168,7 @@ const TECHNIQUES = {
       tackle: '3.5inワームのネコリグ or ダウンショット',
       depth: 'ボトム',
       action: 'ボトムでシェイクしながらスローに誘い、時々放置してバイトを待つ。',
+      castDistance: '5〜15m（ボトムを丁寧に探れる近距離）',
       tags: ['structure', 'deepEdge'],
       score(c) {
         let s = 38; const r = [];
@@ -175,6 +183,7 @@ const TECHNIQUES = {
       tackle: '3/8ozラバージグ＋トレーラー',
       depth: 'ボトム〜カバー際',
       action: 'カバーの奥にピッチングし、フォール→ズル引き→シェイクでリアクションを誘う。',
+      castDistance: '10〜15m（カバーの奥へピンポイント）',
       tags: ['structure', 'shallowCove'],
       score(c) {
         let s = 36; const r = [];
@@ -191,6 +200,7 @@ const TECHNIQUES = {
       tackle: '50〜60mmシンキングミノー',
       depth: '表層〜30cm',
       action: 'アップ〜クロス方向にキャストし、ただ巻き+時々ヒラ打ちさせて誘う。',
+      castDistance: '15〜25m（アップ〜クロスにキャスト）',
       tags: ['current', 'nearBreak'],
       score(c) {
         let s = 42; const r = [];
@@ -205,6 +215,7 @@ const TECHNIQUES = {
       tackle: '2〜3gスプーン',
       depth: 'ボトム〜中層',
       action: 'ボトムをかすめるように引き、時々リフト&フォールでリアクションを誘発。',
+      castDistance: '15〜20m',
       tags: ['deepEdge', 'current'],
       score(c) {
         let s = 40; const r = [];
@@ -219,6 +230,7 @@ const TECHNIQUES = {
       tackle: '#14〜#18 パラシュートフライ',
       depth: '水面',
       action: 'ナチュラルドリフトで流し、ライズに合わせてアワセを入れる。',
+      castDistance: '5〜10m（ナチュラルドリフトできる距離）',
       tags: ['calm', 'shallowCove'],
       score(c) {
         let s = 35; const r = [];
@@ -234,6 +246,7 @@ const TECHNIQUES = {
       tackle: '渓流竿＋ミミズ or 川虫＋玉ウキ',
       depth: 'ボトム〜中層（流れに乗せる）',
       action: '流れに自然に仕掛けを乗せ、竿先でアタリを取る。',
+      castDistance: '流れの筋に合わせて5〜15m',
       tags: ['current'],
       score(c) {
         let s = 44; const r = [];
@@ -251,6 +264,7 @@ const TECHNIQUES = {
       tackle: '20〜40gメタルジグ',
       depth: '中層〜ボトム',
       action: 'ボトムを取ってからワンピッチジャークで中層まで巻き上げ、レンジを探る。',
+      castDistance: '30〜50m（遠投してボトムを取る）',
       tags: ['current', 'deepEdge'],
       score(c) {
         let s = 44; const r = [];
@@ -266,6 +280,7 @@ const TECHNIQUES = {
       tackle: 'メタルジグ or ミノー高速巻き',
       depth: '表層',
       action: 'キャスト後すぐに高速でただ巻きし、表層のナブラ・ボイルを狙う。',
+      castDistance: '30〜40m',
       tags: ['current'],
       score(c) {
         let s = 38; const r = [];
@@ -280,6 +295,7 @@ const TECHNIQUES = {
       tackle: '60〜100gスロージグ',
       depth: 'ボトム',
       action: 'リフト&フォールでボトム付近をじっくりステイさせ、フォール中のバイトを拾う。',
+      castDistance: '20〜40m（堤防先端や船からのボトム攻略）',
       tags: ['deepEdge', 'calm'],
       score(c) {
         let s = 36; const r = [];
@@ -297,6 +313,7 @@ const TECHNIQUES = {
       tackle: '3inワーム＋ジグヘッド',
       depth: '中層〜ボトム',
       action: 'リフト&フォールを繰り返し、フォール中心にレンジを探る万能パターン。',
+      castDistance: '15〜25m',
       score(c) {
         let s = 46; const r = ['天候・魚種を問わず対応しやすい万能パターン'];
         if (c.windSpeed < 5) { s += 10; r.push('穏やかな風で操作性が良い'); }
@@ -308,6 +325,7 @@ const TECHNIQUES = {
       tackle: 'ミノー or シャッドプラグ',
       depth: '表層〜中層',
       action: '一定速度のただ巻きでレンジをキープし、広く探る。',
+      castDistance: '20〜30m',
       score(c) {
         let s = 40; const r = [];
         if (!c.isSunny || ['dawn', 'dusk'].includes(c.timeOfDay)) { s += 10; r.push('低光量条件でプラグへの反応が良くなりやすい'); }
@@ -319,6 +337,7 @@ const TECHNIQUES = {
       tackle: '天秤オモリ＋エサ（虫餌・魚餌）',
       depth: 'ボトム',
       action: 'キャスト後に置き竿にして、底でアタリを待つ。',
+      castDistance: '20〜30m',
       score(c) {
         let s = 34; const r = [];
         if (c.windSpeed > 5 || c.isRain) { s += 12; r.push('やや荒れた条件でも安定して狙える底の釣り'); }
@@ -330,6 +349,7 @@ const TECHNIQUES = {
       tackle: '汎用ルアー/エサをローテーション',
       depth: '表層・中層・ボトムを順に探索',
       action: '各レンジを順番に探り、反応のあった層を重点的に攻める。',
+      castDistance: '10〜20m（レンジごとに探索）',
       score(c) {
         let s = 32; const r = ['条件が読みにくい時のレンジ探索の保険'];
         if (c.timeOfDay === 'noon') { s += 5; }
@@ -715,6 +735,31 @@ function buildConditions(fishType, weather, tide, targetDate, waterTemp, recentA
   };
 }
 
+// 実測の風向・風速から「どちら向きにキャストすべきか」を助言する。
+// 特定の足場・座標を断定するものではなく、風という実データに基づく一般論としての方向付け。
+function castDirectionAdvice(cond) {
+  if (cond.windSpeed < 1.5) {
+    return 'ほぼ無風のため、キャスト方向による影響は小さく、地形（ブレイクや障害物）を基準に狙う方向を決めやすい。';
+  }
+  const downwindIdx = (WIND_DIRS.indexOf(cond.windDirLabel) + 8) % 16;
+  const downwindLabel = WIND_DIRS[downwindIdx];
+  if (cond.windSpeed >= 6) {
+    return `${cond.windDirLabel}の風・風速${cond.windSpeed.toFixed(1)}m/sとやや強めのため、風を背にして${downwindLabel}方向へキャストすると追い風で距離が出やすくライン操作も安定する。正面から風を受ける向きは避けたい。`;
+  }
+  return `${cond.windDirLabel}の風・風速${cond.windSpeed.toFixed(1)}m/sのため、風を背にして${downwindLabel}方向へキャストすると距離を出しやすい。横風気味の向きでも操作性への影響は小さい。`;
+}
+
+// 実測の天候（晴天/曇天/降雨）から、警戒されにくいルアーカラーの傾向を助言する。
+function lureColorAdvice(cond) {
+  if (cond.isRain) {
+    return '雨・濁り水を想定し、視認性の高いチャートリュース系/オレンジ系など目立つカラーが有利。';
+  }
+  if (!cond.isSunny) {
+    return '曇天・低光量を想定し、シルエットが出やすいダーク系やグロー・ラメ入りカラーが有利。';
+  }
+  return '晴天・クリアウォーターを想定し、ナチュラル系(クリア/パール/ワカサギ系)など警戒されにくいカラーが有利。';
+}
+
 function selectTopTechniques(fishType, cond) {
   const list = TECHNIQUES[fishType] || TECHNIQUES.other;
   const scored = list.map((tech) => {
@@ -822,7 +867,7 @@ async function onSubmit(e) {
     renderMap(mapSpots);
     renderConditionStrip(cond, weather, targetDate.date);
     renderTideNote(cond.tide);
-    renderResultCards(resultItems);
+    renderResultCards(resultItems, { castAdvice: castDirectionAdvice(cond), colorAdvice: lureColorAdvice(cond) });
   } catch (err) {
     showError(err.message || '診断中にエラーが発生しました。');
   } finally {
@@ -933,7 +978,7 @@ function renderTideNote(tide) {
   box.classList.remove('hidden');
 }
 
-function renderResultCards(items) {
+function renderResultCards(items, advice) {
   const medals = ['🥇', '🥈', '🥉'];
   el('techniqueCards').innerHTML = items.map((item, i) => {
     const { spot, technique } = item;
@@ -954,8 +999,13 @@ function renderResultCards(items) {
           <dl class="mt-2 text-sm text-slate-600 space-y-1">
             <div><dt class="inline font-semibold text-slate-500">仕掛け/ルアー/エサ：</dt><dd class="inline">${technique.tackle}</dd></div>
             <div><dt class="inline font-semibold text-slate-500">狙うタナ：</dt><dd class="inline">${technique.depth}</dd></div>
+            <div><dt class="inline font-semibold text-slate-500">キャスト距離の目安：</dt><dd class="inline">${technique.castDistance || '状況に応じて調整'}</dd></div>
             <div><dt class="inline font-semibold text-slate-500">アクション：</dt><dd class="inline">${technique.action}</dd></div>
           </dl>
+          <div class="mt-2 bg-sky-50 border border-sky-100 rounded-lg p-2 text-xs text-sky-800 space-y-0.5">
+            <div>🧭 <b>キャスト方向：</b>${advice.castAdvice}</div>
+            <div>🎨 <b>ルアーカラーの目安：</b>${advice.colorAdvice}</div>
+          </div>
           <div class="mt-2 bg-teal-50 border border-teal-100 rounded-lg p-2 text-xs text-teal-800">
             <b>選出理由：</b>${technique.reasons.length ? technique.reasons.join('。') + '。' : '総合的に条件に適した選択です。'}
           </div>

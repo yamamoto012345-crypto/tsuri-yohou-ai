@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tsuri-yohou-ai-v3';
+const CACHE_NAME = 'tsuri-yohou-ai-v4';
 const PRECACHE = ['./index.html', './app.js', './style.css', './manifest.json', './icons/icon.svg'];
 
 self.addEventListener('install', (e) => {
