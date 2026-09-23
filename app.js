@@ -179,7 +179,7 @@ const TECHNIQUES = {
       score(c) {
         let s = 36; const r = [];
         if (c.isRain) { s += 15; r.push('降雨後の濁りはラバージグのシルエットが効きやすい'); }
-        if ([11, 12, 1, 2, 3].includes(c.month)) { s += 12; r.push('低水温期はカバー撃ちでスローに口を使わせやすい'); }
+        if (c.isLowActivitySeason) { s += 12; r.push(`${c.lowActivityReasonText}、カバー撃ちでスローに口を使わせやすい`); }
         return { score: s, reasons: r };
       },
     },
@@ -210,7 +210,7 @@ const TECHNIQUES = {
         let s = 40; const r = [];
         if (c.isSunny) { s += 15; r.push('晴天クリアウォーターではボトム寄りのレンジが安定'); }
         if (c.timeOfDay === 'noon') { s += 10; }
-        if ([11, 12, 1, 2, 3].includes(c.month)) { s += 10; r.push('低水温期は魚がボトム付近に着きやすい'); }
+        if (c.isLowActivitySeason) { s += 10; r.push(`${c.lowActivityReasonText}、魚がボトム付近に着きやすい`); }
         return { score: s, reasons: r };
       },
     },
@@ -285,7 +285,7 @@ const TECHNIQUES = {
         let s = 36; const r = [];
         if (c.windSpeed < 5) { s += 15; r.push('風・流れが緩い時はスローなフォールが決めやすい'); }
         if (c.tide && c.tide.fractionTenth >= 4 && c.tide.fractionTenth <= 6) { s += 10; r.push('潮の流れが緩やかでジグを支配しやすい'); }
-        if ([11, 12, 1, 2].includes(c.month)) { s += 10; r.push('低水温期は低活性魚に強いスロー系が有利'); }
+        if (c.isLowActivitySeason) { s += 10; r.push(`${c.lowActivityReasonText}、低活性魚に強いスロー系が有利`); }
         return { score: s, reasons: r };
       },
     },
@@ -568,6 +568,51 @@ async function fetchWeather(lat, lon, targetDate) {
   };
 }
 
+// 実測の海面水温（海釣り/ショアジギング用）。気候変動で「例年の低水温期」がズレても
+// 実測値なら毎回その年の実態に対応できる。海に面していない座標では信頼できない値
+// （elevationが大きい＝内陸の湖等）が返ることがあるため、その場合はnullを返して
+// 呼び出し側でカレンダーベースの簡易判定にフォールバックさせる。
+async function fetchSeaSurfaceTemp(lat, lon, targetDate) {
+  const today = new Date();
+  const diffDays = Math.round((stripTime(targetDate) - stripTime(today)) / 86400000);
+  if (diffDays < -5 || diffDays > 16) return null; // 対応範囲外は無理に取得しない
+
+  try {
+    const ds = toDateStr(targetDate);
+    const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&hourly=sea_surface_temperature&timezone=auto&start_date=${ds}&end_date=${ds}`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (typeof data.elevation === 'number' && data.elevation > 5) return null; // 内陸グリッド＝海ではない
+    if (!data.hourly || !data.hourly.time || !data.hourly.time.length) return null;
+    const targetHourStr = `${ds}T${pad2(targetDate.getHours())}:00`;
+    let idx = data.hourly.time.indexOf(targetHourStr);
+    if (idx === -1) idx = Math.min(targetDate.getHours(), data.hourly.time.length - 1);
+    const v = data.hourly.sea_surface_temperature[idx];
+    return typeof v === 'number' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+// 湖・川用: 海面水温のような直接データがないため、直近5日間の気温の平均を
+// 「今の実際の気温トレンド」の目安として使う（カレンダー上の月だけで判断しない）。
+async function fetchRecentAvgTemp(lat, lon) {
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_mean&past_days=5&forecast_days=1&timezone=auto`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const vals = data.daily && Array.isArray(data.daily.temperature_2m_mean)
+      ? data.daily.temperature_2m_mean.slice(0, 5).filter((v) => typeof v === 'number')
+      : [];
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  } catch {
+    return null;
+  }
+}
+
 // 潮汐は正式な観測データではなく、月齢に基づく簡易的な近似モデル（実際の潮汐表とは異なる）
 function getMoonAge(date) {
   const knownNewMoon = new Date('2000-01-06T18:14:00Z').getTime();
@@ -634,8 +679,24 @@ function computeTide(targetDate, lat, lon) {
 
 // ===================== 診断アルゴリズム =====================
 
-function buildConditions(fishType, weather, tide, targetDate) {
+// 「低水温期で活性が下がりやすいか」を、可能な限り実測データから毎回判定する。
+// 気候変動で暖冬/早い寒波などカレンダーとズレても対応できるよう、
+// 1) 実測の海面水温 → 2) 直近5日間の気温トレンド → 3) カレンダー上の月、の順で使えるものを優先する。
+function computeLowActivitySeason(waterTemp, recentAvgTemp, month) {
+  if (typeof waterTemp === 'number') {
+    return { isLow: waterTemp < 15, reasonText: `実測の海面水温${waterTemp.toFixed(1)}℃と低めのため` };
+  }
+  if (typeof recentAvgTemp === 'number') {
+    return { isLow: recentAvgTemp < 10, reasonText: `直近5日間の平均気温${recentAvgTemp.toFixed(1)}℃と低めのため` };
+  }
+  const isLow = [11, 12, 1, 2, 3].includes(month);
+  return { isLow, reasonText: 'この時期は一般的に低水温期とされるため（実測データ未取得のためカレンダーで簡易判定）' };
+}
+
+function buildConditions(fishType, weather, tide, targetDate, waterTemp, recentAvgTemp) {
   const wInfo = weatherInfo(weather.weathercode);
+  const month = targetDate.date.getMonth() + 1;
+  const lowSeason = computeLowActivitySeason(waterTemp, recentAvgTemp, month);
   return {
     windSpeed: weather.windspeed,
     windDirLabel: windDirLabel(weather.winddirection),
@@ -646,8 +707,11 @@ function buildConditions(fishType, weather, tide, targetDate) {
     temp: weather.temp,
     pressure: weather.pressure,
     timeOfDay: targetDate.timeOfDay,
-    month: targetDate.date.getMonth() + 1,
+    month,
     tide: tide || null,
+    waterTemp: typeof waterTemp === 'number' ? waterTemp : null,
+    isLowActivitySeason: lowSeason.isLow,
+    lowActivityReasonText: lowSeason.reasonText,
   };
 }
 
@@ -713,29 +777,45 @@ async function onSubmit(e) {
   try {
     const geo = await geocode(location);
     const targetDate = computeTargetDateTime(params);
-    const weather = await fetchWeather(geo.lat, geo.lon, targetDate.date);
-    const needsTide = params.fishType === 'sea' || params.fishType === 'jigging';
-    const tide = needsTide ? computeTide(targetDate.date, geo.lat, geo.lon) : null;
-    const cond = buildConditions(params.fishType, weather, tide, targetDate);
 
     // 入力が「琵琶湖」「淡路島」等の広域名かどうかを判定し、広域なら詳細ポイント3件を選出する
     const curated = matchCuratedArea(location) || matchCuratedArea(geo.label);
     const isBroadArea = !!curated || bboxSizeKm(geo.bbox) > 1.5;
 
+    let mapSpotsBase, areaLabel;
+    if (isBroadArea) {
+      areaLabel = curated ? curated.areaLabel : geo.label;
+      const rawSpots = curated ? curated.spots : generateGenericSpots(geo, geo.bbox);
+      mapSpotsBase = rawSpots.map((spot) => ({ ...spot, areaLabel, isSubSpot: true }));
+    } else {
+      mapSpotsBase = [{ name: geo.label, areaLabel: geo.label, lat: geo.lat, lon: geo.lon, traits: [], isSubSpot: false }];
+    }
+
+    // 天気・水温は「広域の中心点」ではなく、実在する詳細ポイント（内陸になりがちな
+    // エリア中心とは違い実際の水辺）の1つを代表点として取得する
+    const repLat = mapSpotsBase[0].lat, repLon = mapSpotsBase[0].lon;
+    const weather = await fetchWeather(repLat, repLon, targetDate.date);
+    const needsTide = params.fishType === 'sea' || params.fishType === 'jigging';
+    const tide = needsTide ? computeTide(targetDate.date, repLat, repLon) : null;
+
+    // 「低水温期」判定を毎回できるだけ実測データに基づかせる（海は実測水温、
+    // 湖・川は直近5日の気温トレンド）。取得できなければカレンダーにフォールバックする。
+    const waterTemp = needsTide ? await fetchSeaSurfaceTemp(repLat, repLon, targetDate.date) : null;
+    const recentAvgTemp = !needsTide ? await fetchRecentAvgTemp(repLat, repLon) : null;
+
+    const cond = buildConditions(params.fishType, weather, tide, targetDate, waterTemp, recentAvgTemp);
+
     let resultItems, mapSpots;
     if (isBroadArea) {
-      const areaLabel = curated ? curated.areaLabel : geo.label;
-      const rawSpots = curated ? curated.spots : generateGenericSpots(geo, geo.bbox);
-      mapSpots = rawSpots.map((spot) => ({ ...spot, areaLabel, isSubSpot: true }));
+      mapSpots = mapSpotsBase;
       resultItems = mapSpots.map((spot) => ({
         spot,
         technique: pickBestTechniqueForSpot(params.fishType, cond, spot),
       }));
     } else {
       const techniques = selectTopTechniques(params.fishType, cond);
-      const singleSpot = { name: geo.label, areaLabel: geo.label, lat: geo.lat, lon: geo.lon, traits: [], isSubSpot: false };
-      mapSpots = [singleSpot];
-      resultItems = techniques.map((technique) => ({ spot: singleSpot, technique }));
+      mapSpots = mapSpotsBase;
+      resultItems = techniques.map((technique) => ({ spot: mapSpotsBase[0], technique }));
     }
 
     el('results').classList.remove('hidden');
@@ -829,6 +909,9 @@ function renderConditionStrip(cond, weather, date) {
     { label: '風', value: `${cond.windDirLabel} ${cond.windSpeed.toFixed(1)}m/s` },
     { label: '気圧', value: `${Math.round(cond.pressure)}hPa` },
   ];
+  if (cond.waterTemp != null) {
+    items.push({ label: '海面水温(実測)', value: `${cond.waterTemp.toFixed(1)}℃` });
+  }
   el('conditionStrip').innerHTML = items.map((it) => `
     <div class="bg-white rounded-xl border border-slate-200 py-2.5 px-1">
       <div class="text-[11px] text-slate-400">${it.label}</div>
