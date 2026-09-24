@@ -29,8 +29,11 @@ python -m http.server 8000
 
 1. 釣種・日時・時間帯・釣り場所（地名/住所）を入力
 2. 「ベストな釣り方を診断する」を押すと、地図とおすすめ3パターンが表示される
-3. （任意）詳細設定にGoogle Maps APIキーを入れると地図がGoogle Mapsに切り替わる。
-   未入力ならOpenStreetMap（無料・キー不要）で表示する
+3. （任意）詳細設定にGoogle Maps APIキーを入れると地図がGoogle Mapsに切り替わり、
+   「釣り場所」欄の検索もGoogleのジオコーディングを優先的に使うようになる（Nominatimで
+   同名の店舗等が優先されて見つかりにくい場合に精度が上がりやすい。Googleで見つからない
+   場合は自動でNominatimにフォールバックする）。未入力ならOpenStreetMap + Nominatim
+   （無料・キー不要）のみを使う
 4. （任意）「備考」欄に「シーバスを狙いたい」等の要望を入力すると、詳細設定にAnthropic APIキーを
    設定している場合、AI(Claude)がその要望と現在の条件を踏まえた追加提案を1件生成する
 
@@ -49,9 +52,12 @@ python -m http.server 8000
 
 ## 使用API・データソース
 
-- **ジオコーディング**: Nominatim（OpenStreetMap）。日本語の地名・住所を検索できる無料API。
-  公開デモサーバーには利用制限（fair use, 概ね1req/秒）があるため、アクセスが多い本番運用では
-  自前ホスト or 有料ジオコーダーへの切替を推奨。
+- **ジオコーディング**: Nominatim（OpenStreetMap、無料・キー不要）。日本語の地名・住所を
+  検索できるが、公開デモサーバーには利用制限（fair use, 概ね1req/秒）があり、同名の店舗等が
+  優先されて狙った港/湖が出てこないことがある。Google Maps APIキー設定時は
+  `google.maps.Geocoder`（Maps JavaScript API）を優先的に使い、失敗時のみNominatimに
+  フォールバックする。（`google.maps.places.Autocomplete`は2025年3月以降の新規顧客に
+  提供されない制限があるため採用していない。）
 - **気象データ**: Open-Meteo forecast/archive API（気温・気圧・風速風向・天気）。
   予報は概ね16日先まで。それより先の日付は直近の予報データで近似表示する。
 - **海面水温（海釣り/ショアジギング）**: Open-Meteo Marine API。毎回そのタイミングの実測値を
@@ -109,6 +115,10 @@ python -m http.server 8000
   目安位置であり、実際の釣果実績に基づくものではない。
 - Google Maps APIキー未設定時はOpenStreetMap表示。キーを設定して初めて実際の
   Google Maps JavaScript APIが読み込まれる（課金・利用規約はユーザー自身の責任）。
+- Google Maps APIキーが明らかに不正な形式の場合は自動でNominatim/OpenStreetMapに
+  フォールバックする。キーの形式は正しいが実際には存在しない/失効している場合、
+  Google側が例外もコールバックも発生させずに地図だけ空欄になることがある
+  （診断結果自体は影響を受けず正常に表示される。地図が表示されない場合はキーを再確認）。
 - 診断ロジックはルールベースのスコアリング（風速・天候・時間帯・潮汐・水温トレンド等の
   加点方式）。釣果を保証するものではなく、あくまで参考情報。
 - 備考欄のAI回答はAnthropic APIキー未設定時は動作しない。キーはブラウザのlocalStorageに

@@ -81,7 +81,11 @@
           <div class="space-y-1">
             <input id="gmapsKey" type="text" placeholder="お持ちのGoogle Maps APIキー（任意）"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
-            <p>未入力の場合は無料のOpenStreetMapで地図を表示します。キーはこの端末にのみ保存されます。</p>
+            <p>未入力の場合は無料のOpenStreetMapで地図を表示し、釣り場所の検索も無料のNominatimを使います。
+              キーを設定すると地図がGoogle Mapsに切り替わり、「釣り場所」欄の検索もGoogleの
+              ジオコーディングを優先的に使うようになります（同名の店舗等で見つかりにくい場合に
+              精度が上がりやすくなります。見つからない場合は自動でNominatimにフォールバックします）。
+              キーはこの端末にのみ保存されます。（Geocoding APIの有効化と課金設定が別途必要です）</p>
           </div>
           <div class="space-y-1">
             <input id="anthropicKey" type="text" placeholder="お持ちのAnthropic APIキー（任意・備考欄のAI回答に使用）"

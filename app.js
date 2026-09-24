@@ -937,7 +937,7 @@ async function onSubmit(e) {
 
   showLoading(true);
   try {
-    const geo = await geocode(location);
+    const geo = await resolveLocation(location);
     const targetDate = computeTargetDateTime(params);
 
     // 入力が「琵琶湖」「淡路島」等の広域名かどうかを判定し、広域なら詳細ポイント3件を選出する
@@ -1017,8 +1017,32 @@ async function onSubmit(e) {
   }
 }
 
+// 明らかに形式がおかしいキー（コピペミス等）は、GoogleのSDKに投げても
+// InvalidKeyMapErrorとして例外を出さずに固まる/壊れた表示になるだけで検知できないため、
+// 事前に形式チェックして即座にフォールバックする。実際のキーが無効/権限不足の場合は
+// gm_authFailure（地図）・タイムアウト（ジオコーディング）側で検知する。
+function looksLikeValidGoogleKey(key) {
+  return /^AIza[0-9A-Za-z_-]{10,}$/.test(key || '');
+}
+
+let lastRenderedSpots = null;
+
+// Google Maps JS APIは無効なキーでもMapオブジェクト自体は例外を出さず生成してしまい
+// (「開発用途のみ」の透かし入り地図になる)、単純なthen/catchでは検知できない。
+// Googleが認証失敗時に呼ぶ特別なグローバル関数(gm_authFailure)で捕まえ、Leafletにフォールバックする。
+window.gm_authFailure = () => {
+  if (mapEngine !== 'google' || !lastRenderedSpots) return;
+  mapEngine = 'leaflet';
+  const container = el('map');
+  container.innerHTML = '';
+  renderLeafletMap(lastRenderedSpots, container);
+  showError('Google Maps APIキーが無効なため、地図を無料のOpenStreetMapに切り替えました。');
+};
+
 function renderMap(spots) {
-  const key = localStorage.getItem('gmapsKey');
+  lastRenderedSpots = spots;
+  const rawKey = localStorage.getItem('gmapsKey');
+  const key = looksLikeValidGoogleKey(rawKey) ? rawKey : null;
   const wantEngine = key ? 'google' : 'leaflet';
   const container = el('map');
 
@@ -1029,7 +1053,9 @@ function renderMap(spots) {
   mapEngine = wantEngine;
 
   if (wantEngine === 'google') {
-    loadGoogleMaps(key).then(() => {
+    // キーが無効な場合、GoogleのSDKが読み込みコールバックを一切呼ばず無限に待ち続けることがあるため、
+    // タイムアウトで必ずLeafletにフォールバックできるようにする
+    withTimeout(loadGoogleMaps(key), 6000, 'Google Mapsの読み込みがタイムアウトしました').then(() => {
       if (!gmap) gmap = new google.maps.Map(container, { center: { lat: spots[0].lat, lng: spots[0].lon }, zoom: 13 });
       gMarkers.forEach((m) => m.setMap(null));
       gMarkers = spots.map((s, i) => new google.maps.Marker({
@@ -1077,7 +1103,7 @@ function renderLeafletMap(spots, container) {
 }
 
 function loadGoogleMaps(key) {
-  if (window.google && window.google.maps) return Promise.resolve();
+  if (window.google && window.google.maps && window.google.maps.places) return Promise.resolve();
   if (gmapsLoadPromise) return gmapsLoadPromise;
   gmapsLoadPromise = new Promise((resolve, reject) => {
     window.__gmapsInitCb = () => resolve();
@@ -1087,6 +1113,60 @@ function loadGoogleMaps(key) {
     document.head.appendChild(script);
   });
   return gmapsLoadPromise;
+}
+
+// Google Maps APIキー設定時は google.maps.Geocoder で位置を検索する。
+// Nominatimでは同名の店舗・小さなPOIが上位に来て狙った港/湖が出てこないことがあるため、
+// Googleの地名データベースの方が正確に見つかるケースが多い。
+// （google.maps.places.Autocompleteは2025年3月以降の新規顧客に提供されない制限があるため使わず、
+//   制限のない安定版のGeocoderを使う。）
+function geocodeWithGoogle(name) {
+  return new Promise((resolve, reject) => {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ address: name }, (results, status) => {
+      if (status !== 'OK' || !results || !results.length) {
+        reject(new Error(`「${name}」の場所が見つかりませんでした（Google）。`));
+        return;
+      }
+      const r = results[0];
+      const loc = r.geometry.location;
+      let bbox = null;
+      if (r.geometry.viewport) {
+        const ne = r.geometry.viewport.getNorthEast(), sw = r.geometry.viewport.getSouthWest();
+        bbox = [sw.lat(), ne.lat(), sw.lng(), ne.lng()];
+      }
+      const shortLabel = (r.address_components && r.address_components[0] && r.address_components[0].long_name) || r.formatted_address;
+      resolve({ lat: loc.lat(), lon: loc.lng(), label: r.formatted_address, shortLabel, bbox });
+    });
+  });
+}
+
+// Google Maps APIキーがあればGoogleのジオコーディングを優先し、失敗時は無料のNominatimに
+// フォールバックする（キー未設定時は最初からNominatimのみを使う）。
+function withTimeout(promise, ms, message) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
+async function resolveLocation(name) {
+  const rawKey = localStorage.getItem('gmapsKey');
+  const key = looksLikeValidGoogleKey(rawKey) ? rawKey : null;
+  if (key) {
+    try {
+      // キーが無効な場合、GoogleのSDKがコールバックを一切呼ばず無限に待ち続けることがあるため、
+      // タイムアウトで必ずNominatimへフォールバックできるようにする
+      return await withTimeout(
+        (async () => { await loadGoogleMaps(key); return geocodeWithGoogle(name); })(),
+        6000,
+        'Google Geocoderがタイムアウトしました'
+      );
+    } catch {
+      // Google側で見つからない/キー無効/API未有効化/タイムアウト等の場合はNominatimにフォールバック
+    }
+  }
+  return geocode(name);
 }
 
 function renderConditionStrip(cond, weather, date) {
